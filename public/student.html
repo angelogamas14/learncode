@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Student Dashboard</h1>
+      <button onclick="logout()">Logout</button>
+    </header>
+
+    <div class="card">
+      <h2>My Information</h2>
+      <p id="studentInfo"></p>
+    </div>
+
+    <div class="card">
+      <h2>My Assessments / Modules</h2>
+      <div id="assessmentsList"></div>
+    </div>
+  </div>
+
+  <script>
+    async function checkAuth() {
+      const res = await fetch('/api/me');
+      const data = await res.json();
+      if (!res.ok || data.user.role !== 'student') {
+        window.location.href = '/';
+        return;
+      }
+      document.getElementById('studentInfo').innerHTML = `
+        <strong>${data.user.fullname}</strong><br/>
+        ID: ${data.user.student_id}<br/>
+        Block: ${data.user.block}<br/>
+        Year: ${data.user.year}
+      `;
+      loadAssessments();
+    }
+
+    async function loadAssessments() {
+      const res = await fetch('/api/students/assessments');
+      const data = await res.json();
+      const list = document.getElementById('assessmentsList');
+      if (!data.assessments.length) {
+        list.innerHTML = '<p>No assessments assigned yet.</p>';
+        return;
+      }
+      list.innerHTML = data.assessments.map(a => `
+        <div class="assessment-item">
+          <h3>${a.title}</h3>
+          <p>${a.description || ''}</p>
+          <p><small>Module: ${a.module || '-'} | Block: ${a.block} | Year: ${a.year}</small></p>
+        </div>
+      `).join('');
+    }
+
+    async function logout() {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = '/';
+    }
+
+    checkAuth();
+  </script>
+</body>
+</html>

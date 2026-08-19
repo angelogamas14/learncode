@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LearnIT Login</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>LearnIT Student Assessment</h1>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('student')">Student</button>
+      <button class="tab" onclick="showTab('instructor')">Instructor</button>
+    </div>
+
+    <form id="loginForm" class="card">
+      <h2 id="formTitle">Student Login</h2>
+      <input type="hidden" id="role" value="student" />
+      <label>ID</label>
+      <input type="text" id="student_id" required placeholder="Enter ID" />
+      <label>Password</label>
+      <input type="password" id="password" required placeholder="Enter password" />
+      <button type="submit">Login</button>
+      <p id="error" class="error"></p>
+    </form>
+
+    <p class="hint">Instructor default: ID <code>INST-001</code> / Password <code>instructor123</code></p>
+  </div>
+
+  <script>
+    function showTab(role) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('role').value = role;
+      document.getElementById('formTitle').textContent = role === 'student' ? 'Student Login' : 'Instructor Login';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const role = document.getElementById('role').value;
+      const student_id = document.getElementById('student_id').value;
+      const password = document.getElementById('password').value;
+
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, student_id, password })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        window.location.href = role === 'instructor' ? '/instructor.html' : '/student.html';
+      } else {
+        document.getElementById('error').textContent = data.error || 'Login failed';
+      }
+    });
+  </script>
+</body>
+</html>
