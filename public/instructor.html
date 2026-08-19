@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Instructor Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Instructor Dashboard</h1>
+      <button onclick="logout()">Logout</button>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Create Student</h2>
+        <form id="studentForm">
+          <label>Full Name</label>
+          <input type="text" id="fullname" required />
+          <label>Student ID</label>
+          <input type="text" id="new_student_id" required />
+          <label>Password</label>
+          <input type="password" id="student_password" required />
+          <label>Block</label>
+          <input type="text" id="block" required placeholder="e.g. A" />
+          <label>Year</label>
+          <input type="text" id="year" required placeholder="e.g. 1" />
+          <button type="submit">Create Student</button>
+          <p id="studentMsg" class="message"></p>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Create Assessment / Module</h2>
+        <form id="assessmentForm">
+          <label>Title</label>
+          <input type="text" id="title" required />
+          <label>Description</label>
+          <textarea id="description" rows="2"></textarea>
+          <label>Module</label>
+          <input type="text" id="module" placeholder="e.g. Programming 101" />
+          <label>Block</label>
+          <input type="text" id="assessment_block" required placeholder="e.g. A" />
+          <label>Year</label>
+          <input type="text" id="assessment_year" required placeholder="e.g. 1" />
+          <button type="submit">Assign to Block/Year</button>
+          <p id="assessmentMsg" class="message"></p>
+        </form>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Students</h2>
+      <table id="studentsTable">
+        <thead><tr><th>ID</th><th>Name</th><th>Block</th><th>Year</th><th>Created</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Assessments</h2>
+      <table id="assessmentsTable">
+        <thead><tr><th>Title</th><th>Module</th><th>Block</th><th>Year</th><th>Created</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
+
+  <script>
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/me', { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok || !data.user || data.user.role !== 'instructor') {
+          window.location.href = '/';
+        }
+      } catch (err) {
+        window.location.href = '/';
+      }
+    }
+    checkAuth();
+
+    async function loadStudents() {
+      const res = await fetch('/api/students', { credentials: 'include' });
+      const data = await res.json();
+      const tbody = document.querySelector('#studentsTable tbody');
+      tbody.innerHTML = data.students.map(s => `
+        <tr><td>${s.student_id}</td><td>${s.fullname}</td><td>${s.block}</td><td>${s.year}</td><td>${new Date(s.created_at).toLocaleString()}</td></tr>
+      `).join('');
+    }
+
+    async function loadAssessments() {
+      const res = await fetch('/api/assessments', { credentials: 'include' });
+      const data = await res.json();
+      const tbody = document.querySelector('#assessmentsTable tbody');
+      tbody.innerHTML = data.assessments.map(a => `
+        <tr><td>${a.title}</td><td>${a.module || '-'}</td><td>${a.block}</td><td>${a.year}</td><td>${new Date(a.created_at).toLocaleString()}</td></tr>
+      `).join('');
+    }
+
+    document.getElementById('studentForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        fullname: document.getElementById('fullname').value,
+        student_id: document.getElementById('new_student_id').value,
+        password: document.getElementById('student_password').value,
+        block: document.getElementById('block').value,
+        year: document.getElementById('year').value
+      };
+      const res = await fetch('/api/students', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) });
+      const data = await res.json();
+      document.getElementById('studentMsg').textContent = res.ok ? 'Student created!' : (data.error || 'Failed');
+      document.getElementById('studentMsg').className = res.ok ? 'message success' : 'message error';
+      if (res.ok) { e.target.reset(); loadStudents(); }
+    });
+
+    document.getElementById('assessmentForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        module: document.getElementById('module').value,
+        block: document.getElementById('assessment_block').value,
+        year: document.getElementById('assessment_year').value
+      };
+      const res = await fetch('/api/assessments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) });
+      const data = await res.json();
+      document.getElementById('assessmentMsg').textContent = res.ok ? 'Assessment assigned!' : (data.error || 'Failed');
+      document.getElementById('assessmentMsg').className = res.ok ? 'message success' : 'message error';
+      if (res.ok) { e.target.reset(); loadAssessments(); }
+    });
+
+    async function logout() {
+      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+      window.location.href = '/';
+    }
+
+    loadStudents();
+    loadAssessments();
+  </script>
+</body>
+</html>
