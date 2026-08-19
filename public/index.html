@@ -43,17 +43,22 @@
       const student_id = document.getElementById('student_id').value;
       const password = document.getElementById('password').value;
 
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role, student_id, password })
-      });
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ role, student_id, password })
+        });
 
-      const data = await res.json();
-      if (res.ok) {
-        window.location.href = role === 'instructor' ? '/instructor.html' : '/student.html';
-      } else {
-        document.getElementById('error').textContent = data.error || 'Login failed';
+        const data = await res.json();
+        if (res.ok) {
+          window.location.href = role === 'instructor' ? '/instructor.html' : '/student.html';
+        } else {
+          document.getElementById('error').textContent = data.error || 'Login failed';
+        }
+      } catch (err) {
+        document.getElementById('error').textContent = 'Network error. Please try again.';
       }
     });
   </script>

@@ -70,16 +70,20 @@
 
   <script>
     async function checkAuth() {
-      const res = await fetch('/api/me');
-      const data = await res.json();
-      if (!res.ok || data.user.role !== 'instructor') {
+      try {
+        const res = await fetch('/api/me', { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok || !data.user || data.user.role !== 'instructor') {
+          window.location.href = '/';
+        }
+      } catch (err) {
         window.location.href = '/';
       }
     }
     checkAuth();
 
     async function loadStudents() {
-      const res = await fetch('/api/students');
+      const res = await fetch('/api/students', { credentials: 'include' });
       const data = await res.json();
       const tbody = document.querySelector('#studentsTable tbody');
       tbody.innerHTML = data.students.map(s => `
@@ -88,7 +92,7 @@
     }
 
     async function loadAssessments() {
-      const res = await fetch('/api/assessments');
+      const res = await fetch('/api/assessments', { credentials: 'include' });
       const data = await res.json();
       const tbody = document.querySelector('#assessmentsTable tbody');
       tbody.innerHTML = data.assessments.map(a => `
@@ -105,7 +109,7 @@
         block: document.getElementById('block').value,
         year: document.getElementById('year').value
       };
-      const res = await fetch('/api/students', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const res = await fetch('/api/students', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) });
       const data = await res.json();
       document.getElementById('studentMsg').textContent = res.ok ? 'Student created!' : (data.error || 'Failed');
       document.getElementById('studentMsg').className = res.ok ? 'message success' : 'message error';
@@ -121,7 +125,7 @@
         block: document.getElementById('assessment_block').value,
         year: document.getElementById('assessment_year').value
       };
-      const res = await fetch('/api/assessments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const res = await fetch('/api/assessments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) });
       const data = await res.json();
       document.getElementById('assessmentMsg').textContent = res.ok ? 'Assessment assigned!' : (data.error || 'Failed');
       document.getElementById('assessmentMsg').className = res.ok ? 'message success' : 'message error';
@@ -129,7 +133,7 @@
     });
 
     async function logout() {
-      await fetch('/api/logout', { method: 'POST' });
+      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
       window.location.href = '/';
     }
 

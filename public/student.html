@@ -26,40 +26,48 @@
 
   <script>
     async function checkAuth() {
-      const res = await fetch('/api/me');
-      const data = await res.json();
-      if (!res.ok || data.user.role !== 'student') {
+      try {
+        const res = await fetch('/api/me', { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok || !data.user || data.user.role !== 'student') {
+          window.location.href = '/';
+          return;
+        }
+        document.getElementById('studentInfo').innerHTML = `
+          <strong>${data.user.fullname}</strong><br/>
+          ID: ${data.user.student_id}<br/>
+          Block: ${data.user.block}<br/>
+          Year: ${data.user.year}
+        `;
+        loadAssessments();
+      } catch (err) {
         window.location.href = '/';
-        return;
       }
-      document.getElementById('studentInfo').innerHTML = `
-        <strong>${data.user.fullname}</strong><br/>
-        ID: ${data.user.student_id}<br/>
-        Block: ${data.user.block}<br/>
-        Year: ${data.user.year}
-      `;
-      loadAssessments();
     }
 
     async function loadAssessments() {
-      const res = await fetch('/api/students/assessments');
-      const data = await res.json();
-      const list = document.getElementById('assessmentsList');
-      if (!data.assessments.length) {
-        list.innerHTML = '<p>No assessments assigned yet.</p>';
-        return;
+      try {
+        const res = await fetch('/api/students/assessments', { credentials: 'include' });
+        const data = await res.json();
+        const list = document.getElementById('assessmentsList');
+        if (!data.assessments.length) {
+          list.innerHTML = '<p>No assessments assigned yet.</p>';
+          return;
+        }
+        list.innerHTML = data.assessments.map(a => `
+          <div class="assessment-item">
+            <h3>${a.title}</h3>
+            <p>${a.description || ''}</p>
+            <p><small>Module: ${a.module || '-'} | Block: ${a.block} | Year: ${a.year}</small></p>
+          </div>
+        `).join('');
+      } catch (err) {
+        document.getElementById('assessmentsList').innerHTML = '<p>Failed to load assessments.</p>';
       }
-      list.innerHTML = data.assessments.map(a => `
-        <div class="assessment-item">
-          <h3>${a.title}</h3>
-          <p>${a.description || ''}</p>
-          <p><small>Module: ${a.module || '-'} | Block: ${a.block} | Year: ${a.year}</small></p>
-        </div>
-      `).join('');
     }
 
     async function logout() {
-      await fetch('/api/logout', { method: 'POST' });
+      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
       window.location.href = '/';
     }
 
