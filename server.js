@@ -81,8 +81,8 @@ app.get('/api/me', requireAuth, (req, res) => {
 // Instructor: create student
 app.post('/api/students', requireRole('instructor'), (req, res) => {
   const { fullname, username, password, block, year } = req.body;
-  if (!fullname || !username || !password || !block || !year) {
-    return res.status(400).json({ error: 'All fields are required' });
+  if (!fullname || !username || !block || !year) {
+    return res.status(400).json({ error: 'Full name, username, block, and year are required' });
   }
 
   const users = db.table('users');
@@ -90,7 +90,8 @@ app.post('/api/students', requireRole('instructor'), (req, res) => {
     return res.status(400).json({ error: 'Username already exists' });
   }
 
-  const hash = bcrypt.hashSync(password, 10);
+  const defaultPassword = 'Seait123';
+  const hash = bcrypt.hashSync(password || defaultPassword, 10);
   const student = users.insert({
     role: 'student',
     fullname,
