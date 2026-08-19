@@ -60,3 +60,24 @@ th { background: #edf2f7; font-weight: 600; }
   margin-bottom: 1rem;
 }
 .assessment-item h3 { margin-bottom: 0.5rem; color: #2d3748; }
+.hidden { display: none; }
+.offline-status {
+  text-align: center;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background: #fed7d7;
+  color: #742a2a;
+  margin-bottom: 1rem;
+}
+.online-status {
+  text-align: right;
+  font-size: 0.875rem;
+  color: #38a169;
+  margin-bottom: 0.5rem;
+}
+.offline-badge {
+  text-align: right;
+  font-size: 0.875rem;
+  color: #e53e3e;
+  margin-bottom: 0.5rem;
+}

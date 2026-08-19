@@ -10,8 +10,13 @@
   <div class="container">
     <header>
       <h1>Student Dashboard</h1>
-      <button onclick="logout()">Logout</button>
+      <div>
+        <span id="onlineBadge" class="online-status">Online</span>
+        <button onclick="logout()">Logout</button>
+      </div>
     </header>
+
+    <p id="offlineNotice" class="offline-status hidden">You are offline. Showing saved assessments.</p>
 
     <div class="card">
       <h2>My Information</h2>
@@ -25,50 +30,121 @@
   </div>
 
   <script>
+    const USER_KEY = 'learnit:user';
+    const ASSESSMENTS_KEY = 'learnit:assessments';
+
+    function saveToStorage(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (e) { console.error('Storage failed', e); }
+    }
+
+    function loadFromStorage(key) {
+      try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : null;
+      } catch (e) { return null; }
+    }
+
+    function updateOnlineStatus() {
+      const badge = document.getElementById('onlineBadge');
+      const notice = document.getElementById('offlineNotice');
+      if (!navigator.onLine) {
+        badge.textContent = 'Offline';
+        badge.className = 'offline-badge';
+        notice.classList.remove('hidden');
+      } else {
+        badge.textContent = 'Online';
+        badge.className = 'online-status';
+        notice.classList.add('hidden');
+      }
+    }
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus();
+
     async function checkAuth() {
       try {
         const res = await fetch('/api/me', { credentials: 'include' });
         const data = await res.json();
-        if (!res.ok || !data.user || data.user.role !== 'student') {
-          window.location.href = '/';
+        if (res.ok && data.user && data.user.role === 'student') {
+          saveToStorage(USER_KEY, data.user);
+          renderStudentInfo(data.user);
+          loadAssessments();
           return;
         }
-        document.getElementById('studentInfo').innerHTML = `
-          <strong>${data.user.fullname}</strong><br/>
-          Username: ${data.user.username || data.user.student_id}<br/>
-          Block: ${data.user.block}<br/>
-          Year: ${data.user.year}
-        `;
-        loadAssessments();
-      } catch (err) {
-        window.location.href = '/';
+      } catch (err) {}
+
+      // If offline, try to continue with saved data
+      if (!navigator.onLine) {
+        const savedUser = loadFromStorage(USER_KEY);
+        if (savedUser) {
+          renderStudentInfo(savedUser);
+          renderSavedAssessments();
+          return;
+        }
       }
+      window.location.href = '/';
+    }
+
+    function renderStudentInfo(user) {
+      document.getElementById('studentInfo').innerHTML = `
+        <strong>${user.fullname}</strong><br/>
+        Username: ${user.username || user.student_id}<br/>
+        Block: ${user.block}<br/>
+        Year: ${user.year}
+      `;
+    }
+
+    function renderAssessments(assessments, offlineMode = false) {
+      const list = document.getElementById('assessmentsList');
+      if (!assessments || !assessments.length) {
+        list.innerHTML = offlineMode
+          ? '<p>No saved assessments. Connect to the internet to load.</p>'
+          : '<p>No assessments assigned yet.</p>';
+        return;
+      }
+      list.innerHTML = assessments.map(a => `
+        <div class="assessment-item">
+          <h3>${a.title}</h3>
+          <p>${a.description || ''}</p>
+          <p><small>Module: ${a.module || '-'} | Block: ${a.block} | Year: ${a.year}</small></p>
+        </div>
+      `).join('');
+    }
+
+    function renderSavedAssessments() {
+      const saved = loadFromStorage(ASSESSMENTS_KEY);
+      renderAssessments(saved, true);
     }
 
     async function loadAssessments() {
       try {
         const res = await fetch('/api/students/assessments', { credentials: 'include' });
+        if (!res.ok) throw new Error('Not OK');
         const data = await res.json();
-        const list = document.getElementById('assessmentsList');
-        if (!data.assessments.length) {
-          list.innerHTML = '<p>No assessments assigned yet.</p>';
-          return;
-        }
-        list.innerHTML = data.assessments.map(a => `
-          <div class="assessment-item">
-            <h3>${a.title}</h3>
-            <p>${a.description || ''}</p>
-            <p><small>Module: ${a.module || '-'} | Block: ${a.block} | Year: ${a.year}</small></p>
-          </div>
-        `).join('');
+        saveToStorage(ASSESSMENTS_KEY, data.assessments);
+        renderAssessments(data.assessments);
       } catch (err) {
-        document.getElementById('assessmentsList').innerHTML = '<p>Failed to load assessments.</p>';
+        if (!navigator.onLine) {
+          renderSavedAssessments();
+        } else {
+          document.getElementById('assessmentsList').innerHTML = '<p>Failed to load assessments.</p>';
+        }
       }
     }
 
     async function logout() {
-      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+      try {
+        await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+      } catch (e) {}
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(ASSESSMENTS_KEY);
       window.location.href = '/';
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.error);
     }
 
     checkAuth();

@@ -9,35 +9,88 @@
 <body>
   <div class="container">
     <h1>LearnIT Student Assessment</h1>
+    <p id="offlineStatus" class="offline-status hidden"></p>
 
     <div class="tabs">
-      <button class="tab active" onclick="showTab('student')">Student</button>
+      <button class="tab active" onclick="showTab('login')">Student Login</button>
+      <button class="tab" onclick="showTab('signup')">Student Signup</button>
       <button class="tab" onclick="showTab('instructor')">Instructor</button>
     </div>
 
     <form id="loginForm" class="card">
-      <h2 id="formTitle">Student Login</h2>
+      <h2>Student Login</h2>
       <input type="hidden" id="role" value="student" />
       <label>Username / ID</label>
       <input type="text" id="student_id" required placeholder="Enter username or ID" />
       <label>Password</label>
       <input type="password" id="password" required placeholder="Enter password" />
       <button type="submit">Login</button>
-      <p id="error" class="error"></p>
+      <p id="loginError" class="error"></p>
     </form>
 
-    <p class="hint">Instructor default: Username/ID <code>INST-001</code> / Password <code>instructor123</code></p>
+    <form id="signupForm" class="card hidden">
+      <h2>Student Signup</h2>
+      <label>Full Name</label>
+      <input type="text" id="signup_fullname" required placeholder="e.g. Juan Dela Cruz" />
+      <label>Username / ID</label>
+      <input type="text" id="signup_username" required placeholder="Create username or ID" />
+      <label>Password</label>
+      <input type="password" id="signup_password" required placeholder="Create password" />
+      <label>Block</label>
+      <input type="text" id="signup_block" value="6" required placeholder="e.g. 6" />
+      <label>Year</label>
+      <input type="text" id="signup_year" value="2" required placeholder="e.g. 2" />
+      <button type="submit">Sign Up</button>
+      <p id="signupError" class="error"></p>
+      <p id="signupSuccess" class="success"></p>
+    </form>
+
+    <form id="instructorForm" class="card hidden">
+      <h2>Instructor Login</h2>
+      <input type="hidden" id="instructor_role" value="instructor" />
+      <label>ID</label>
+      <input type="text" id="instructor_id" required placeholder="Enter ID" />
+      <label>Password</label>
+      <input type="password" id="instructor_password" required placeholder="Enter password" />
+      <button type="submit">Login</button>
+      <p id="instructorError" class="error"></p>
+    </form>
+
+    <p class="hint">Instructor default: ID <code>INST-001</code> / Password <code>instructor123</code></p>
   </div>
 
   <script>
-    function showTab(role) {
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const instructorForm = document.getElementById('instructorForm');
+
+    function showTab(tab) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       event.target.classList.add('active');
-      document.getElementById('role').value = role;
-      document.getElementById('formTitle').textContent = role === 'student' ? 'Student Login' : 'Instructor Login';
+
+      loginForm.classList.add('hidden');
+      signupForm.classList.add('hidden');
+      instructorForm.classList.add('hidden');
+
+      if (tab === 'login') loginForm.classList.remove('hidden');
+      if (tab === 'signup') signupForm.classList.remove('hidden');
+      if (tab === 'instructor') instructorForm.classList.remove('hidden');
     }
 
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    function setOfflineStatus() {
+      const el = document.getElementById('offlineStatus');
+      if (!navigator.onLine) {
+        el.textContent = 'You are offline. Login requires a connection, but saved assessments are available on the student dashboard.';
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+    window.addEventListener('online', setOfflineStatus);
+    window.addEventListener('offline', setOfflineStatus);
+    setOfflineStatus();
+
+    loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const role = document.getElementById('role').value;
       const student_id = document.getElementById('student_id').value;
@@ -53,14 +106,74 @@
 
         const data = await res.json();
         if (res.ok) {
-          window.location.href = role === 'instructor' ? '/instructor.html' : '/student.html';
+          window.location.href = '/student.html';
         } else {
-          document.getElementById('error').textContent = data.error || 'Login failed';
+          document.getElementById('loginError').textContent = data.error || 'Login failed';
         }
       } catch (err) {
-        document.getElementById('error').textContent = 'Network error. Please try again.';
+        document.getElementById('loginError').textContent = 'Network error. Please try again.';
       }
     });
+
+    signupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        fullname: document.getElementById('signup_fullname').value,
+        username: document.getElementById('signup_username').value,
+        password: document.getElementById('signup_password').value,
+        block: document.getElementById('signup_block').value,
+        year: document.getElementById('signup_year').value
+      };
+
+      try {
+        const res = await fetch('/api/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          document.getElementById('signupSuccess').textContent = 'Account created! Redirecting...';
+          document.getElementById('signupError').textContent = '';
+          window.location.href = '/student.html';
+        } else {
+          document.getElementById('signupError').textContent = data.error || 'Signup failed';
+        }
+      } catch (err) {
+        document.getElementById('signupError').textContent = 'Network error. Please try again.';
+      }
+    });
+
+    instructorForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const role = document.getElementById('instructor_role').value;
+      const student_id = document.getElementById('instructor_id').value;
+      const password = document.getElementById('instructor_password').value;
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ role, student_id, password })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          window.location.href = '/instructor.html';
+        } else {
+          document.getElementById('instructorError').textContent = data.error || 'Login failed';
+        }
+      } catch (err) {
+        document.getElementById('instructorError').textContent = 'Network error. Please try again.';
+      }
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
   </script>
 </body>
 </html>

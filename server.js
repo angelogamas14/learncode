@@ -74,6 +74,43 @@ app.post('/api/logout', (req, res) => {
   res.json({ message: 'Logged out' });
 });
 
+// Student self-signup (defaults to year 2 / block 6)
+app.post('/api/signup', (req, res) => {
+  const { fullname, username, password, block = '6', year = '2' } = req.body;
+  if (!fullname || !username || !password) {
+    return res.status(400).json({ error: 'Full name, username, and password are required' });
+  }
+
+  const users = db.table('users');
+  if (users.find(u => u.username === username || u.student_id === username)) {
+    return res.status(400).json({ error: 'Username already exists' });
+  }
+
+  const hash = bcrypt.hashSync(password, 10);
+  const student = users.insert({
+    role: 'student',
+    fullname,
+    username,
+    student_id: username,
+    password: hash,
+    block: String(block),
+    year: String(year),
+    created_at: new Date().toISOString()
+  });
+
+  req.session.user = {
+    id: student.id,
+    role: student.role,
+    fullname: student.fullname,
+    username: student.username,
+    student_id: student.student_id,
+    block: student.block,
+    year: student.year
+  };
+
+  res.status(201).json({ user: req.session.user });
+});
+
 app.get('/api/me', requireAuth, (req, res) => {
   res.json({ user: req.session.user });
 });
@@ -98,8 +135,8 @@ app.post('/api/students', requireRole('instructor'), (req, res) => {
     username,
     student_id: username,
     password: hash,
-    block,
-    year,
+    block: String(block),
+    year: String(year),
     created_at: new Date().toISOString()
   });
   res.status(201).json({ id: student.id, fullname, username, student_id: student.student_id, block, year });
@@ -124,8 +161,8 @@ app.post('/api/assessments', requireRole('instructor'), (req, res) => {
     title,
     description: description || null,
     module: module || null,
-    block,
-    year,
+    block: String(block),
+    year: String(year),
     created_by: req.session.user.id,
     created_at: new Date().toISOString()
   });
@@ -146,9 +183,10 @@ app.get('/api/assessments', requireAuth, (req, res) => {
 
 // Student: view assigned assessments filtered by block and year
 app.get('/api/students/assessments', requireRole('student'), (req, res) => {
-  const { block, year } = req.session.user;
+  const userBlock = String(req.session.user.block);
+  const userYear = String(req.session.user.year);
   const assessments = db.table('assessments')
-    .filter(a => a.block === block && a.year === year)
+    .filter(a => String(a.block) === userBlock && String(a.year) === userYear)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   res.json({ assessments });
 });
