@@ -6,11 +6,11 @@ A simple student assessment system with instructor and student roles.
 
 - **Instructor**
   - Login with ID and password
-  - Create students (full name, student ID, password, block, year)
+  - Create students (full name, username, password, block, year)
   - Create assessments / modules
   - Assign assessments to a specific block and year
 - **Student**
-  - Login with student ID and password
+  - Login with username and password
   - View assessments / modules assigned to their block and year
 
 ## Default Instructor Account
