@@ -19,10 +19,8 @@
         <form id="studentForm">
           <label>Full Name</label>
           <input type="text" id="fullname" required />
-          <label>Student ID</label>
-          <input type="text" id="new_student_id" required />
-          <label>Password</label>
-          <input type="password" id="student_password" required />
+          <label>Username</label>
+          <input type="text" id="username" required />
           <label>Block</label>
           <input type="text" id="block" required placeholder="e.g. A" />
           <label>Year</label>
@@ -54,7 +52,7 @@
     <section class="card">
       <h2>Students</h2>
       <table id="studentsTable">
-        <thead><tr><th>ID</th><th>Name</th><th>Block</th><th>Year</th><th>Created</th></tr></thead>
+        <thead><tr><th>Username</th><th>Name</th><th>Block</th><th>Year</th><th>Created</th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
@@ -87,7 +85,7 @@
       const data = await res.json();
       const tbody = document.querySelector('#studentsTable tbody');
       tbody.innerHTML = data.students.map(s => `
-        <tr><td>${s.student_id}</td><td>${s.fullname}</td><td>${s.block}</td><td>${s.year}</td><td>${new Date(s.created_at).toLocaleString()}</td></tr>
+        <tr><td>${s.username || s.student_id}</td><td>${s.fullname}</td><td>${s.block}</td><td>${s.year}</td><td>${new Date(s.created_at).toLocaleString()}</td></tr>
       `).join('');
     }
 
@@ -104,8 +102,7 @@
       e.preventDefault();
       const body = {
         fullname: document.getElementById('fullname').value,
-        student_id: document.getElementById('new_student_id').value,
-        password: document.getElementById('student_password').value,
+        username: document.getElementById('username').value,
         block: document.getElementById('block').value,
         year: document.getElementById('year').value
       };

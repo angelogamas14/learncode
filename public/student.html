@@ -35,7 +35,7 @@
         }
         document.getElementById('studentInfo').innerHTML = `
           <strong>${data.user.fullname}</strong><br/>
-          ID: ${data.user.student_id}<br/>
+          Username: ${data.user.username || data.user.student_id}<br/>
           Block: ${data.user.block}<br/>
           Year: ${data.user.year}
         `;

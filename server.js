@@ -49,7 +49,9 @@ app.post('/api/login', (req, res) => {
     return res.status(400).json({ error: 'student_id, password, and role are required' });
   }
 
-  const user = db.table('users').find(u => u.student_id === student_id && u.role === role);
+  const user = db.table('users').find(u =>
+    (u.student_id === student_id || u.username === student_id) && u.role === role
+  );
   if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
   const valid = bcrypt.compareSync(password, user.password);
@@ -59,6 +61,7 @@ app.post('/api/login', (req, res) => {
     id: user.id,
     role: user.role,
     fullname: user.fullname,
+    username: user.username,
     student_id: user.student_id,
     block: user.block,
     year: user.year
@@ -77,27 +80,29 @@ app.get('/api/me', requireAuth, (req, res) => {
 
 // Instructor: create student
 app.post('/api/students', requireRole('instructor'), (req, res) => {
-  const { fullname, student_id, password, block, year } = req.body;
-  if (!fullname || !student_id || !password || !block || !year) {
-    return res.status(400).json({ error: 'All fields are required' });
+  const { fullname, username, password, block, year } = req.body;
+  if (!fullname || !username || !block || !year) {
+    return res.status(400).json({ error: 'Full name, username, block, and year are required' });
   }
 
   const users = db.table('users');
-  if (users.find(u => u.student_id === student_id)) {
-    return res.status(400).json({ error: 'Student ID already exists' });
+  if (users.find(u => u.username === username || u.student_id === username)) {
+    return res.status(400).json({ error: 'Username already exists' });
   }
 
-  const hash = bcrypt.hashSync(password, 10);
+  const defaultPassword = 'Seait123';
+  const hash = bcrypt.hashSync(password || defaultPassword, 10);
   const student = users.insert({
     role: 'student',
     fullname,
-    student_id,
+    username,
+    student_id: username,
     password: hash,
     block,
     year,
     created_at: new Date().toISOString()
   });
-  res.status(201).json({ id: student.id, fullname, student_id, block, year });
+  res.status(201).json({ id: student.id, fullname, username, student_id: student.student_id, block, year });
 });
 
 // Instructor: list students
